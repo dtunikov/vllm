@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     VLLM_ENGINE_ITERATION_TIMEOUT_S: int = 60
     VLLM_ENGINE_READY_TIMEOUT_S: int = 600
     VLLM_API_KEY: str | None = None
+    GONKA_SECRET: str | None = None
     VLLM_DEBUG_LOG_API_SERVER_RESPONSE: bool = False
     S3_ACCESS_KEY_ID: str | None = None
     S3_SECRET_ACCESS_KEY: str | None = None
@@ -615,6 +616,8 @@ environment_variables: dict[str, Callable[[], Any]] = {
     ),
     # API key for vLLM API server
     "VLLM_API_KEY": lambda: os.environ.get("VLLM_API_KEY", None),
+    # License secret for GONKA distribution
+    "GONKA_SECRET": lambda: os.environ.get("GONKA_SECRET", None),
     # Whether to log responses from API Server for debugging
     "VLLM_DEBUG_LOG_API_SERVER_RESPONSE": lambda: os.environ.get(
         "VLLM_DEBUG_LOG_API_SERVER_RESPONSE", "False"

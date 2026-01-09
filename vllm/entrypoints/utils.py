@@ -157,6 +157,11 @@ def load_aware_call(func):
 
 
 def cli_env_setup():
+    # Validate license before any other setup
+    from vllm.licensing import validate_license
+
+    validate_license()
+
     # The safest multiprocessing method is `spawn`, as the default `fork` method
     # is not compatible with some accelerators. The default method will be
     # changing in future versions of Python, so we should use it explicitly when
