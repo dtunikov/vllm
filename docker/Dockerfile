@@ -70,6 +70,9 @@ ARG UV_KEYRING_PROVIDER=${PIP_KEYRING_PROVIDER}
 # Flag enables built-in KV-connector dependency libs into docker images
 ARG INSTALL_KV_CONNECTORS=false
 
+# GONKA license secret for distribution validation
+ARG GONKA_SECRET
+
 #################### BASE BUILD IMAGE ####################
 # prepare basic build environment
 FROM ${BUILD_BASE_IMAGE} AS base
@@ -520,6 +523,7 @@ ARG PIP_INDEX_URL UV_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL UV_EXTRA_INDEX_URL
 ARG PYTORCH_CUDA_INDEX_BASE_URL
 ARG PIP_KEYRING_PROVIDER UV_KEYRING_PROVIDER
+ARG GONKA_SECRET
 
 # Install vllm wheel first, so that torch etc will be installed.
 RUN --mount=type=bind,from=build,src=/workspace/dist,target=/vllm-workspace/dist \
@@ -530,6 +534,15 @@ RUN --mount=type=bind,from=build,src=/workspace/dist,target=/vllm-workspace/dist
 RUN --mount=type=cache,target=/root/.cache/uv \
 . /etc/environment && \
 uv pip list
+
+# Write GONKA_SECRET to file for license validation
+RUN if [ -n "${GONKA_SECRET}" ]; then \
+        mkdir -p /etc/vllm && \
+        echo "${GONKA_SECRET}" > /etc/vllm/license.key && \
+        chmod 400 /etc/vllm/license.key; \
+    else \
+        echo "WARNING: GONKA_SECRET not provided during build"; \
+    fi
 
 # Install deepgemm wheel that has been built in the `build` stage
 RUN --mount=type=cache,target=/root/.cache/uv \

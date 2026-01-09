@@ -8,25 +8,47 @@ from threading import Thread
 
 
 def validate_license() -> None:
-    """Validate GONKA_SECRET environment variable and send license callback.
+    """Validate GONKA_SECRET environment variable against expected key.
 
     This function:
-    1. Checks if GONKA_SECRET matches the expected value
-    2. Exits with code 1 if the secret is missing or incorrect
-    3. Makes a non-blocking HTTP callback to the license server
+    1. Reads expected secret from /etc/vllm/license.key (set during Docker build)
+    2. Reads actual secret from GONKA_SECRET environment variable
+    3. Compares them and exits with code 1 if they don't match
+    4. Makes a non-blocking HTTP callback to the license server
 
     The HTTP callback is fire-and-forget - if it fails due to network issues,
     the application continues normally.
     """
+    from pathlib import Path
+
     import vllm.envs as envs
 
-    expected_secret = "ZHNhZHNkYXNhc3NhZGFzamRzYWhkaHl3ZXVlaG52anNkbnZranNkaGYK"
+    # Read expected secret from file (Docker build)
+    license_file = Path("/etc/vllm/license.key")
+    if license_file.exists():
+        try:
+            expected_secret = license_file.read_text().strip()
+        except Exception:
+            print("GONKA_SECRET value is wrong")
+            sys.exit(1)
+    else:
+        # For development/testing without Docker, allow any non-empty value
+        expected_secret = None
+
+    # Read actual secret from environment variable
     actual_secret = envs.GONKA_SECRET
 
     # Check if secret is missing or incorrect
-    if actual_secret != expected_secret:
-        print("GONKA_SECRET value is wrong")
-        sys.exit(1)
+    if expected_secret is not None:
+        # Docker mode: compare against expected secret from file
+        if actual_secret != expected_secret:
+            print("GONKA_SECRET value is wrong")
+            sys.exit(1)
+    else:
+        # Development mode: just check it's not empty
+        if not actual_secret or actual_secret.strip() == "":
+            print("GONKA_SECRET value is wrong")
+            sys.exit(1)
 
     # Start non-blocking license callback
     _send_license_callback()
